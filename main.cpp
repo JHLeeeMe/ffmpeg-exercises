@@ -3,7 +3,6 @@ extern "C"
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 }
-
 #include <iostream>
 #include <memory>
 
@@ -20,7 +19,7 @@ static void help()
 }
 
 static int decode_packet(AVPacket* packet, AVCodecContext* codec_ctx, AVFrame* frame);
-static void save_gray_frame(unsigned char* buf, int wrap, int x_size, int y_size, char* filename);
+static void save_gray_frame(unsigned char* buf, int wrap, int x_size, int y_size, const char* filename);
 
 int main(int argc, char* argv[])
 {
@@ -231,7 +230,7 @@ static int decode_packet(AVPacket* packet, AVCodecContext* codec_ctx, AVFrame* f
                     << "but could e.g. be just the R component if the video format is RGB" << std::endl;
       }
 
-      // save a grayscale frame into a .pgm file
+      // save a grayscale frame into a *.pgm file
       save_gray_frame(frame->data[0],
                       frame->linesize[0],
                       frame->width,
@@ -242,17 +241,22 @@ static int decode_packet(AVPacket* packet, AVCodecContext* codec_ctx, AVFrame* f
   return 0;
 }
 
-static void save_gray_frame(unsigned char *buf, int wrap, int x_size, int y_size, char *filename)
+static void save_gray_frame(unsigned char* buf,
+                            int wrap,
+                            int x_size,
+                            int y_size,
+                            const char* filename)
 {
-    FILE *f;
-    int i;
-    f = fopen(filename,"w");
+    FILE* fs;
+    fs = fopen(filename,"w");
     // writing the minimal required header for a pgm file format
-    // portable graymap format -> https://en.wikipedia.org/wiki/Netpbm_format#PGM_example
-    fprintf(f, "P5\n%d %d\n%d\n", x_size, y_size, 255);
+    fprintf(fs, "P5\n%d %d\n%d\n", x_size, y_size, 255);
 
     // writing line by line
-    for (i = 0; i < y_size; i++)
-        fwrite(buf + i * wrap, 1, x_size, f);
-    fclose(f);
+    for (int i = 0; i < y_size; i++)
+    {
+        fwrite(buf + i * wrap, 1, x_size, fs);
+    }
+
+    fclose(fs);
 }
