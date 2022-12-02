@@ -8,13 +8,33 @@ extern "C"
 #include <memory>
 
 
+static void help()
+{
+    std::cout << "---------------------------------------------------" << std::endl
+              << "This program shows how to extract gray video frame." << std::endl
+              << "You can get *.pgm file."                             << std::endl
+              << "Usage:"                                              << std::endl
+              << "  ./extract_gray_frame <input_video_name>"           << std::endl
+              << "---------------------------------------------------" << std::endl
+    << std::endl;
+}
+
 static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFrame *pFrame);
 static void save_gray_frame(unsigned char *buf, int wrap, int xsize, int ysize, char *filename);
 
-int main()
+int main(int argc, char* argv[])
 {
+    help();
+    if (argc != 2)
+    {
+        std::cerr << "parameters error." << std::endl;
+        return -1;
+    }
+
     // input file name
-    const std::string filename = "./resources/media/videos/night_sky.mp4";
+    const std::string media_path = "./resources/media/";
+    const std::string videos_path = media_path + "videos/";
+    const std::string filename = videos_path + argv[1];
 
     AVFormatContext* i_format_ctx = avformat_alloc_context();
     if (!i_format_ctx)
@@ -59,12 +79,6 @@ int main()
                   << "/"                        << curr_stream->r_frame_rate.den << std::endl;
         std::cout << "AVStream->start_time: "   << curr_stream->start_time << std::endl;
         std::cout << "AVStream->duration: "     << curr_stream->duration << std::endl;
-        //printf("AVStream->time_base: %d/%d\n",
-        //       i_format_ctx->streams[i]->time_base.num, i_format_ctx->streams[i]->time_base.den);
-        //printf("AVStream->r_frame_rate: %d/%d\n",
-        //       i_format_ctx->streams[i]->r_frame_rate.num, i_format_ctx->streams[i]->r_frame_rate.den);
-        //printf("AVStream->start_time: %ld\n", i_format_ctx->streams[i]->start_time);
-        //printf("AVStream->duration: %ld\n", i_format_ctx->streams[i]->duration);
 
         std::cout << "Finding the proper decoder(CODEC)..." << std::endl;
 
@@ -87,29 +101,23 @@ int main()
             }
             std::cout << "Video Codec:  resolution "
                       << curr_codec_params->width << "x" << curr_codec_params->height << std::endl;
-            //printf("Video Codec: resolution %d x %d\n",
-            //       curr_codec_params->width, curr_codec_params->height);
             break;
         case AVMEDIA_TYPE_AUDIO:
             std::cout << "Audio Codec: "
                       << curr_codec_params->channels
                       << " channels, smple rate "
                       << curr_codec_params->sample_rate << std::endl;
-            //printf("Audio Codec: %d channels, sample rate %d\n",
-            //       curr_codec_params->channels, curr_codec_params->sample_rate);
             break;
         default:
             break;
         }
         std::cout << "\tCodec(ID): " << curr_codec->name << "(" << curr_codec->id << ")"
                   << ", bitrate: "   << curr_codec_params->bit_rate << std::endl;
-        //printf("\tCodec(ID): %s(%d), bit_rate: %ld\n", curr_codec->name, curr_codec->id, curr_codec_params->bit_rate);
     }
 
     if (video_stream_index == -1)
     {
         std::cerr << "File " << filename.c_str() << "does not contain a video stream!" << std::endl;
-        //printf("File %s does not contain a video stream!\n", filename.c_str());
         return -1;
     }
 
@@ -167,7 +175,7 @@ int main()
         av_packet_unref(i_packet);
     }
 
-    printf("releasing all the resources.\n");
+    std::cout << "Releasing all the resources." << std::endl;
 
     avformat_close_input(&i_format_ctx);
     av_packet_free(&i_packet);
