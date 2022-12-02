@@ -3,18 +3,37 @@ extern "C"
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 }
-
 #include <iostream>
 #include <memory>
 
 
-static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFrame *pFrame);
-static void save_gray_frame(unsigned char *buf, int wrap, int xsize, int ysize, char *filename);
-
-int main()
+static void help()
 {
+    std::cout << "---------------------------------------------------" << std::endl
+              << "This program shows how to extract gray video frame." << std::endl
+              << "You can get *.pgm file."                             << std::endl
+              << "Usage:"                                              << std::endl
+              << "  ./extract_gray_frame <input_video_name>"           << std::endl
+              << "---------------------------------------------------" << std::endl
+    << std::endl;
+}
+
+static int decode_packet(AVPacket* packet, AVCodecContext* codec_ctx, AVFrame* frame);
+static void save_gray_frame(unsigned char* buf, int wrap, int x_size, int y_size, const char* filename);
+
+int main(int argc, char* argv[])
+{
+    help();
+    if (argc != 2)
+    {
+        std::cerr << "parameters error." << std::endl;
+        return -1;
+    }
+
     // input file name
-    const std::string filename = "./resources/media/videos/night_sky.mp4";
+    const std::string media_path = "./resources/media/";
+    const std::string videos_path = media_path + "videos/";
+    const std::string filename = videos_path + argv[1];
 
     AVFormatContext* i_format_ctx = avformat_alloc_context();
     if (!i_format_ctx)
@@ -59,12 +78,6 @@ int main()
                   << "/"                        << curr_stream->r_frame_rate.den << std::endl;
         std::cout << "AVStream->start_time: "   << curr_stream->start_time << std::endl;
         std::cout << "AVStream->duration: "     << curr_stream->duration << std::endl;
-        //printf("AVStream->time_base: %d/%d\n",
-        //       i_format_ctx->streams[i]->time_base.num, i_format_ctx->streams[i]->time_base.den);
-        //printf("AVStream->r_frame_rate: %d/%d\n",
-        //       i_format_ctx->streams[i]->r_frame_rate.num, i_format_ctx->streams[i]->r_frame_rate.den);
-        //printf("AVStream->start_time: %ld\n", i_format_ctx->streams[i]->start_time);
-        //printf("AVStream->duration: %ld\n", i_format_ctx->streams[i]->duration);
 
         std::cout << "Finding the proper decoder(CODEC)..." << std::endl;
 
@@ -87,29 +100,23 @@ int main()
             }
             std::cout << "Video Codec:  resolution "
                       << curr_codec_params->width << "x" << curr_codec_params->height << std::endl;
-            //printf("Video Codec: resolution %d x %d\n",
-            //       curr_codec_params->width, curr_codec_params->height);
             break;
         case AVMEDIA_TYPE_AUDIO:
             std::cout << "Audio Codec: "
                       << curr_codec_params->channels
                       << " channels, smple rate "
                       << curr_codec_params->sample_rate << std::endl;
-            //printf("Audio Codec: %d channels, sample rate %d\n",
-            //       curr_codec_params->channels, curr_codec_params->sample_rate);
             break;
         default:
             break;
         }
         std::cout << "\tCodec(ID): " << curr_codec->name << "(" << curr_codec->id << ")"
                   << ", bitrate: "   << curr_codec_params->bit_rate << std::endl;
-        //printf("\tCodec(ID): %s(%d), bit_rate: %ld\n", curr_codec->name, curr_codec->id, curr_codec_params->bit_rate);
     }
 
     if (video_stream_index == -1)
     {
         std::cerr << "File " << filename.c_str() << "does not contain a video stream!" << std::endl;
-        //printf("File %s does not contain a video stream!\n", filename.c_str());
         return -1;
     }
 
@@ -167,7 +174,7 @@ int main()
         av_packet_unref(i_packet);
     }
 
-    printf("releasing all the resources.\n");
+    std::cout << "Releasing all the resources." << std::endl;
 
     avformat_close_input(&i_format_ctx);
     av_packet_free(&i_packet);
@@ -177,67 +184,79 @@ int main()
     return 0;
 }
 
-static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFrame *pFrame)
+static int decode_packet(AVPacket* packet, AVCodecContext* codec_ctx, AVFrame* frame)
 {
   // Supply raw packet data as input to a decoder
-  // https://ffmpeg.org/doxygen/trunk/group__lavc__decoding.html#ga58bc4bf1e0ac59e27362597e467efff3
-  int response = avcodec_send_packet(pCodecContext, pPacket);
-
-  if (response < 0) {
-    return response;
+  int resp = avcodec_send_packet(codec_ctx, packet);
+  if (resp < 0) {
+      return resp;
   }
 
-  while (response >= 0)
+  while (resp >= 0)
   {
-    // Return decoded output data (into a frame) from a decoder
-    // https://ffmpeg.org/doxygen/trunk/group__lavc__decoding.html#ga11e6542c4e66d3028668788a1a74217c
-    response = avcodec_receive_frame(pCodecContext, pFrame);
-    if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
-      break;
-    } else if (response < 0) {
-      return response;
-    }
+      // Return decoded output data (into a frame) from a decoder
+      resp = avcodec_receive_frame(codec_ctx, frame);
+      if (resp == AVERROR(EAGAIN) || resp == AVERROR_EOF)
+      {
+          break;
+      }
+      else if (resp < 0)
+      {
+          return resp;
+      }
 
-    if (response >= 0) {
       printf(
           "Frame %d (type=%c, size=%d bytes, format=%d) pts %ld key_frame %d [DTS %d]\n",
-          pCodecContext->frame_number,
-          av_get_picture_type_char(pFrame->pict_type),
-          pFrame->pkt_size,
-          pFrame->format,
-          pFrame->pts,
-          pFrame->key_frame,
-          pFrame->coded_picture_number
+          codec_ctx->frame_number,
+          av_get_picture_type_char(frame->pict_type),
+          frame->pkt_size,
+          frame->format,
+          frame->pts,
+          frame->key_frame,
+          frame->coded_picture_number
       );
 
       char frame_filename[1024];
-      snprintf(frame_filename, sizeof(frame_filename), "%s-%d.pgm", "frame", pCodecContext->frame_number);
+      snprintf(frame_filename, sizeof(frame_filename),
+               "%s-%d.pgm",
+               "frame", codec_ctx->frame_number);
       // Check if the frame is a planar YUV 4:2:0, 12bpp
       // That is the format of the provided .mp4 file
       // RGB formats will definitely not give a gray image
       // Other YUV image may do so, but untested, so give a warning
-      if (pFrame->format != AV_PIX_FMT_YUV420P)
+      if (frame->format != AV_PIX_FMT_YUV420P)
       {
-        printf("Warning: the generated file may not be a grayscale image, but could e.g. be just the R component if the video format is RGB\n");
+          std::cout << "Warning: the generated file may not be a grayscale image, "
+                    << "but could e.g. be just the R component if the video format is RGB" << std::endl;
       }
-      // save a grayscale frame into a .pgm file
-      save_gray_frame(pFrame->data[0], pFrame->linesize[0], pFrame->width, pFrame->height, frame_filename);
-    }
+
+      // save a grayscale frame into a *.pgm file
+      save_gray_frame(frame->data[0],
+                      frame->linesize[0],
+                      frame->width,
+                      frame->height,
+                      frame_filename);
   }
+
   return 0;
 }
 
-static void save_gray_frame(unsigned char *buf, int wrap, int xsize, int ysize, char *filename)
+static void save_gray_frame(unsigned char* buf,
+                            int wrap,
+                            int x_size,
+                            int y_size,
+                            const char* filename)
 {
-    FILE *f;
-    int i;
-    f = fopen(filename,"w");
+    FILE* fs;
+    fs = fopen(filename,"w");
     // writing the minimal required header for a pgm file format
-    // portable graymap format -> https://en.wikipedia.org/wiki/Netpbm_format#PGM_example
-    fprintf(f, "P5\n%d %d\n%d\n", xsize, ysize, 255);
+    fprintf(fs, "P5\n%d %d\n%d\n", x_size, y_size, 255);
 
     // writing line by line
-    for (i = 0; i < ysize; i++)
-        fwrite(buf + i * wrap, 1, xsize, f);
-    fclose(f);
+    for (int i = 0; i < y_size; i++)
+    {
+        fwrite(buf + i * wrap, 1, x_size, fs);
+    }
+
+    fclose(fs);
 }
