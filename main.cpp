@@ -185,28 +185,27 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-static int decode_packet(AVPacket *packet, AVCodecContext *codec_ctx, AVFrame *frame)
+static int decode_packet(AVPacket* packet, AVCodecContext* codec_ctx, AVFrame* frame)
 {
   // Supply raw packet data as input to a decoder
-  // https://ffmpeg.org/doxygen/trunk/group__lavc__decoding.html#ga58bc4bf1e0ac59e27362597e467efff3
-  int response = avcodec_send_packet(codec_ctx, packet);
-
-  if (response < 0) {
-    return response;
+  int resp = avcodec_send_packet(codec_ctx, packet);
+  if (resp < 0) {
+      return resp;
   }
 
-  while (response >= 0)
+  while (resp >= 0)
   {
-    // Return decoded output data (into a frame) from a decoder
-    // https://ffmpeg.org/doxygen/trunk/group__lavc__decoding.html#ga11e6542c4e66d3028668788a1a74217c
-    response = avcodec_receive_frame(codec_ctx, frame);
-    if (response == AVERROR(EAGAIN) || response == AVERROR_EOF) {
-      break;
-    } else if (response < 0) {
-      return response;
-    }
+      // Return decoded output data (into a frame) from a decoder
+      resp = avcodec_receive_frame(codec_ctx, frame);
+      if (resp == AVERROR(EAGAIN) || resp == AVERROR_EOF)
+      {
+          break;
+      }
+      else if (resp < 0)
+      {
+          return resp;
+      }
 
-    if (response >= 0) {
       printf(
           "Frame %d (type=%c, size=%d bytes, format=%d) pts %ld key_frame %d [DTS %d]\n",
           codec_ctx->frame_number,
@@ -219,19 +218,27 @@ static int decode_packet(AVPacket *packet, AVCodecContext *codec_ctx, AVFrame *f
       );
 
       char frame_filename[1024];
-      snprintf(frame_filename, sizeof(frame_filename), "%s-%d.pgm", "frame", codec_ctx->frame_number);
+      snprintf(frame_filename, sizeof(frame_filename),
+               "%s-%d.pgm",
+               "frame", codec_ctx->frame_number);
       // Check if the frame is a planar YUV 4:2:0, 12bpp
       // That is the format of the provided .mp4 file
       // RGB formats will definitely not give a gray image
       // Other YUV image may do so, but untested, so give a warning
       if (frame->format != AV_PIX_FMT_YUV420P)
       {
-        printf("Warning: the generated file may not be a grayscale image, but could e.g. be just the R component if the video format is RGB\n");
+          std::cout << "Warning: the generated file may not be a grayscale image, "
+                    << "but could e.g. be just the R component if the video format is RGB" << std::endl;
       }
+
       // save a grayscale frame into a .pgm file
-      save_gray_frame(frame->data[0], frame->linesize[0], frame->width, frame->height, frame_filename);
-    }
+      save_gray_frame(frame->data[0],
+                      frame->linesize[0],
+                      frame->width,
+                      frame->height,
+                      frame_filename);
   }
+
   return 0;
 }
 
