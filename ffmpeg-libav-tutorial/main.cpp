@@ -1,10 +1,11 @@
-extern "C"
-{
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-}
 #include <iostream>
 #include <memory>
+
+extern "C"
+{
+#include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
+}
 
 
 static void help()
@@ -160,7 +161,7 @@ int main(int argc, char* argv[])
             continue;
         }
 
-        printf("AVPacket->pts %ld\n", i_packet->pts);
+        std::cout << "AVPacket->pts: " << i_packet->pts << std::endl;
         resp = decode_packet(i_packet, i_codec_ctx, i_frame);
         if (resp < 0)
         {
