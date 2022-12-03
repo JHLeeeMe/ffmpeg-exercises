@@ -1,10 +1,11 @@
-extern "C"
-{
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-}
 #include <iostream>
 #include <memory>
+
+extern "C"
+{
+#include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
+}
 
 
 static void help()
