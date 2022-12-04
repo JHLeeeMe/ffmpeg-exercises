@@ -14,7 +14,7 @@ static void help()
               << "This program shows how to extract gray video frame." << std::endl
               << "You can get *.pgm file."                             << std::endl
               << "Usage:"                                              << std::endl
-              << "  ./extract_gray_frame <input_video_name>"           << std::endl
+              << "  ./main <input_video_name>"                         << std::endl
               << "---------------------------------------------------" << std::endl
     << std::endl;
 }
@@ -55,7 +55,6 @@ int main(int argc, char* argv[])
     std::cout << "Format: "     << i_format_ctx->iformat->long_name
               << ", Duration: " << i_format_ctx->duration << "(us)"
     << std::endl;
-    //printf("Format %s, duration %ld us\n", i_format_ctx->iformat->long_name, i_format_ctx->duration);
 
     std::cout << "Fiding stream info from format" << std::endl;
     if (avformat_find_stream_info(i_format_ctx, nullptr) != 0)
@@ -64,9 +63,9 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    AVCodec* i_codec;
+    AVCodec*           i_codec;
     AVCodecParameters* i_codec_params;
-    int video_stream_index = -1;
+    int                video_stream_index = -1;
     for (int i = 0; i < i_format_ctx->nb_streams; i++)
     {
         AVStream* curr_stream = i_format_ctx->streams[i];
