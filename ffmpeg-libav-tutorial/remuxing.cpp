@@ -8,12 +8,12 @@ extern "C"
 
 static void help()
 {
-    std::cout << "-----------------------------------------" << std::endl
-              << "This program shows how to remuxing video." << std::endl
-              << "You can get *.ts file."                    << std::endl
-              << "Usage:"                                    << std::endl
-              << "  ./remuxing <input_video_name>"           << std::endl
-              << "-----------------------------------------" << std::endl
+    std::cout << "-------------------------------------------------------" << std::endl
+              << "This program shows how to remuxing video."               << std::endl
+              << "You can get *.ts file."                                  << std::endl
+              << "Usage:"                                                  << std::endl
+              << "  ./remuxing <input_video_name> <output_video_name> [1]" << std::endl
+              << "-------------------------------------------------------" << std::endl
     << std::endl;
 }
 
@@ -21,13 +21,13 @@ int main(int argc, char** argv)
 {
     help();
 
-    AVFormatContext*             in_fmt_ctx;
-    AVFormatContext*            out_fmt_ctx;
+    AVFormatContext* in_fmt_ctx;
+    AVFormatContext* out_fmt_ctx;
     int              fragmented_mp4_options = 0;
-    int                                 ret = 0;
-    size_t                   num_of_streams = 0;
-    int*                        stream_list;
-    size_t                       stream_idx = 0;
+    int              ret = 0;
+    size_t           num_of_streams = 0;
+    int*             stream_list;
+    size_t           stream_idx = 0;
 
     if (argc < 3)
     {
@@ -73,8 +73,8 @@ int main(int argc, char** argv)
 
     for (int i = 0; i < num_of_streams; i++)
     {
-        AVStream* in_stream = in_fmt_ctx->streams[i];
-        AVStream* out_stream;
+        AVStream*          in_stream = in_fmt_ctx->streams[i];
+        AVStream*          out_stream;
         AVCodecParameters* in_codec_params = in_stream->codecpar;
 
         if (in_codec_params->codec_type != AVMEDIA_TYPE_VIDEO &&
