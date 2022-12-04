@@ -149,6 +149,16 @@ int main(int argc, char** argv)
         packet.stream_index = stream_list[packet.stream_index];
         out_stream = out_fmt_ctx->streams[packet.stream_index];
 
+        /* copy packet */
+        packet.pts = av_rescale_q_rnd(packet.pts,
+                                      in_stream->time_base, out_stream->time_base,
+                                      static_cast<AVRounding>(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        packet.dts = av_rescale_q_rnd(packet.dts,
+                                      in_stream->time_base, out_stream->time_base,
+                                      static_cast<AVRounding>(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        packet.duration = av_rescale_q(packet.duration, in_stream->time_base, out_stream->time_base);
+        packet.pos = -1;
+
         ret = av_interleaved_write_frame(out_fmt_ctx, &packet);
         if (ret < 0)
         {
